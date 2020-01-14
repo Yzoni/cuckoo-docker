@@ -6,7 +6,6 @@ source .env
 DID=$(docker ps -aqf "name=cuckoo-docker_cuckoo")
 DPID=$(docker inspect -f '{{.State.Pid}}' $DID)
 VNET=vboxnet0
-OVPN_CONFIG=nl355.nordvpn.com.udp
 
 echo "Container ID is $DID"
 echo "DPID is $DPID"

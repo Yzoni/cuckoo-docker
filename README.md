@@ -34,6 +34,7 @@ CUCKOO_DATA_DIR=<Directory where docker mounts its volumes>
 CUCKOO_ISO_DIR=<Directory containing the (Windows) iso image>
 CUCKOO_MALWARE_DIR=<Directory containing samples>
 WINDOWS_SERIAL=<0000-0000-....>
+OVPN_CONFIG=nl355.nordvpn.com.udp ((already in this repository) or something else)
 ```
 
 ##### For openvpn setup:
