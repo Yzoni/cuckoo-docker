@@ -1,0 +1,49 @@
+#!/bin/bash
+
+# Setup vars
+source .env
+
+DID=$(docker ps -aqf "name=cuckoo-docker_cuckoo")
+DPID=$(docker inspect -f '{{.State.Pid}}' $DID)
+VNET=vboxnet0
+OVPN_CONFIG=nl355.nordvpn.com.udp
+
+echo "Container ID is $DID"
+echo "DPID is $DPID"
+
+function test_root() {
+    if [ "$EUID" -ne 0 ]
+        then echo "Please run as root"
+        exit
+    fi
+}
+
+test_root
+
+function setup_vpn() {
+  docker exec -ti $DID /bin/bash -c "cp /root/conf/openvpn/.auth /etc/openvpn/"
+  docker exec -ti $DID /bin/bash -c "cp /root/conf/openvpn/$OVPN_CONFIG.conf /etc/openvpn/client/"
+  docker exec -ti $DID /bin/bash -c "systemctl start openvpn-client@$OVPN_CONFIG.service"
+  docker exec -ti $DID /bin/bash -c "systemctl status --no-pager openvpn-client@$OVPN_CONFIG.service"
+
+  docker exec -ti $DID /bin/bash -c "systemctl restart iptables.service"
+  docker exec -ti $DID /bin/bash -c "systemctl status --no-pager iptables.service"
+  docker exec -ti $DID /bin/bash -c "/root/conf/openvpn/iptables.sh"
+}
+
+function setup_network() {
+    # Networking: create new namespace
+    mkdir -p /var/run/netns
+
+    rm /var/run/netns/$DPID
+    ln -s /proc/$DPID/ns/net /var/run/netns/$DPID
+
+    ip link set $VNET netns $DPID
+
+    docker exec -ti $DID /bin/bash -c "VBoxManage list hostonlyifs"
+    docker exec -ti $DID /bin/bash -c "ip addr add 192.168.56.1/24 dev vboxnet0"
+    docker exec -ti $DID /bin/bash -c "ip link set vboxnet0 up"
+    docker exec -ti $DID /bin/bash -c "ip a"
+
+    setup_vpn
+}
